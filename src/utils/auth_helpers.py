@@ -140,3 +140,16 @@ def create_refresh_and_access_tokens(user_id: int) -> TokenResponseScheme:
         refresh_token=refresh_token,
         token_type=settings.auth.token_type,
     )
+
+
+async def tokenize(session: AsyncSession, user_id: int) -> TokenResponseScheme:
+    """Creates a new `Token` instance."""
+
+    token_data = create_refresh_and_access_tokens(user_id=user_id)
+
+    stmt = Token(
+        refresh_token=token_data.refresh_token, access_token=token_data.access_token
+    )
+    session.add(stmt)
+
+    return token_data
