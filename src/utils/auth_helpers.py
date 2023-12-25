@@ -93,7 +93,9 @@ async def check_token_validity(session: AsyncSession, **kwargs) -> Optional[Toke
 
     result = await session.scalars(stmt)
 
-    return result.one_or_none()
+    if not (response := result.one_or_none()):
+        raise UnAuthorized
+    return response
 
 
 async def validate_authenticated_user_token(
@@ -102,12 +104,9 @@ async def validate_authenticated_user_token(
 ) -> int:
     """Validates and returns is the token valid"""
     try:
-        checking = await check_token_validity(
+        await check_token_validity(
             session=session, access_token=token.credentials, expired=False
         )
-
-        if not checking:
-            raise UnAuthorized
 
         data = decode_jwt(token.credentials)
 
@@ -140,16 +139,3 @@ def create_refresh_and_access_tokens(user_id: int) -> TokenResponseScheme:
         refresh_token=refresh_token,
         token_type=settings.auth.token_type,
     )
-
-
-async def tokenize(session: AsyncSession, user_id: int) -> TokenResponseScheme:
-    """Creates a new `Token` instance."""
-
-    token_data = create_refresh_and_access_tokens(user_id=user_id)
-
-    stmt = Token(
-        refresh_token=token_data.refresh_token, access_token=token_data.access_token
-    )
-    session.add(stmt)
-
-    return token_data

@@ -9,3 +9,6 @@ openssl genrsa -out jwt-private.pem 2048
     # Generate a RSA public key
 openssl rsa -in jwt-private.pem -outform PEM -pubout -out jwt-public.pem 
 ```
+
+***Make a folder in the `src` folder, call it `certs` and add generated certificates into that folder .***
+
