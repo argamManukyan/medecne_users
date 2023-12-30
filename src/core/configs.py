@@ -3,6 +3,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__name__).parent.parent.parent
 
+MB_TO_BYTES: int = 1_048_576
+SUPPORTED_IMAGE_TYPES = ["jpg", "jpeg", "webp", "png"]
+
 
 class DBSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", case_sensitive=True)
@@ -32,9 +35,16 @@ class AuthSettings(BaseSettings):
     password_max_length: int = 12
 
 
+class FileSettings(BaseSettings):
+    users_file_direction: str = "users"
+
+
 class Settings(BaseSettings):
     api_version: str = "/api/v1"
+    file_path: Path = BASE_DIR / "src" / "static" / "media"
+    max_upload_file_size: int = 5242880  # 5mb
     db: DBSettings = DBSettings()
+    file: FileSettings = FileSettings()
     auth: AuthSettings = AuthSettings()
 
 

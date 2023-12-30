@@ -1,10 +1,13 @@
+import json
+
 import pytest
 from fastapi.exceptions import HTTPException
+from httpx import AsyncClient
 from pydantic_core import ValidationError
 
 from src import messages
 from src.schemas import UserCreateSchema
-from src.schemas.auth import AccountVerificationScheme
+from src.schemas.auth import AccountVerificationScheme, TokenResponseScheme, LoginSchema
 from src.schemas.base import BaseMessageResponse
 from tests.conftest import async_session_maker
 from src.services import user_service
@@ -14,25 +17,25 @@ from src.services import user_service
     "first_name, last_name, email, password, result",
     [
         (
-            "Test",
-            "Testovich",
-            "test12@mail.ru",
-            "Test12!",
-            BaseMessageResponse(message=messages.USER_CREATED_SUCCESSFULLY),
+                "Test",
+                "Testovich",
+                "test12@mail.ru",
+                "Test12!",
+                BaseMessageResponse(message=messages.USER_CREATED_SUCCESSFULLY),
         ),
         (
-            "Test",
-            "Testovich",
-            "test12@mail.ru",
-            "Test12!",
-            HTTPException,
+                "Test",
+                "Testovich",
+                "test12@mail.ru",
+                "Test12!",
+                HTTPException,
         ),
         (
-            "Test",
-            "Testovich",
-            "test1s2@mail.ru",
-            "Testxasxsax12!",
-            ValidationError,
+                "Test",
+                "Testovich",
+                "test1s2@mail.ru",
+                "Testxasxsax12!",
+                ValidationError,
         ),
     ],
 )
@@ -65,3 +68,40 @@ async def test_verify_account_success(user_fixture: user_service.model):
 
         await session.delete(user_fixture)
         await session.commit()
+#
+#
+# @pytest.mark.parametrize(
+#     "email, password, result", [
+#         (
+#                 "test12@mail.ru", "Test1998!", TokenResponseScheme
+#         ),
+#         (
+#                 "test1@mail.ru", "xasxsAsxas", HTTPException
+#         ),
+#         (
+#                 "test@mail.ru", "Senior1234!", HTTPException
+#         ),
+#     ]
+# )
+# async def test_user_login(async_client: AsyncClient, email, password, result, user_fixture):
+#     print(email)
+#     try:
+#         result = await async_client.request(
+#             "POST",
+#             "/api/v1/auth/login",
+#             json={
+#                 "email": email,
+#                 "password": password
+#             },
+#             headers={
+#                 "Content-Type": "application/json"
+#             }
+#         )
+#         print(result.url)
+#         response = result.json()
+#
+#         print(response, "responseresponse")
+#         # assert response["access_token"]
+#
+#     except Exception as e:
+#         print(f"{e}")

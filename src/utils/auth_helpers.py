@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core import constants
 from src.core.configs import settings
-from src.core.constants import TokenTypes
+from src.core.constants import TokenTypes, TOKEN_PARTITIONS_NUMBER, OTP_GENERATION_DIVISION
 from src.core.database import get_session
 from src.exceptions.auth_exceptions import InvalidData, UnAuthorized, TokenExpired
 from src.schemas.auth import TokenResponseScheme
@@ -79,7 +79,7 @@ def decode_user_id(user_decoded_id: str) -> int:
     """Decodes particular user.id"""
     separated_data = user_decoded_id.split("_")
 
-    if not len(separated_data) == 3:
+    if not len(separated_data) == TOKEN_PARTITIONS_NUMBER:
         raise InvalidData
 
     user_id = int(separated_data[1])
@@ -123,7 +123,7 @@ async def validate_authenticated_user_token(
 
 def generate_otp_code() -> str:
     """Generated OTP code for any purpose"""
-    return f"{uuid.uuid4().int % 100_0000}"
+    return f"{uuid.uuid4().int % OTP_GENERATION_DIVISION}"
 
 
 def create_refresh_and_access_tokens(user_id: int) -> TokenResponseScheme:

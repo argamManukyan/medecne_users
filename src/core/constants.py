@@ -1,8 +1,14 @@
-# Auth constants
 from enum import Enum
+# Project constants
+
+MAIN_OPERATIONS = ["create", "read", "update", "delete"]
+
+
+# Auth constants
 
 PASSWORD_CHECKER_PATTERN = "^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{6,}$"
-
+TOKEN_PARTITIONS_NUMBER = 3
+OTP_GENERATION_DIVISION = 100_0000
 
 class TokenTypes(Enum):
     ACCESS = "access"

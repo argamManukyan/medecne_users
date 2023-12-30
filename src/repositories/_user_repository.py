@@ -1,28 +1,40 @@
-from sqlalchemy import select, update
+import os.path
+import time
+
+from fastapi import UploadFile
+from sqlalchemy import select, update, inspect
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload, selectinload
 
-from src.exceptions.auth_exceptions import UserDoesNotFound, EmailDuplication, InvalidData, AccountAlreadyVerified, \
-    AccountDeleted, InvalidOTP
-from src.models import User
+from src.core.configs import BASE_DIR, settings
+from src.exceptions.auth_exceptions import (
+    UserDoesNotFound,
+    EmailDuplication,
+    InvalidData,
+    AccountAlreadyVerified,
+    AccountDeleted,
+    InvalidOTP,
+)
+from src.models import User, UserRelatedFeatures, UserRelatedFeatureValue, UserGroup
 from src.schemas.auth import AccountVerificationScheme
+from src.schemas.user import UserUpdateSchema
 from src.utils.auth_helpers import generate_otp_code
 
 
 class UserRepository:
-
     model = User
 
     @classmethod
     async def get_user(cls, session: AsyncSession, **kwargs) -> User:
         """Returns a user instance"""
-
-        stmt = select(cls.model).filter_by(**kwargs)
+        stmt = select(cls.model).options(
+            joinedload(cls.model.group),
+            selectinload(cls.model.features),
+        )
 
         result = await session.scalars(stmt)
-
         user_object = result.one_or_none()
-
         if not user_object:
             raise UserDoesNotFound
 
@@ -44,10 +56,12 @@ class UserRepository:
             raise InvalidData(f"{e}")
 
     @classmethod
-    async def verify_account(cls, session: AsyncSession, data: AccountVerificationScheme):
+    async def verify_account(
+        cls, session: AsyncSession, data: AccountVerificationScheme
+    ):
         """
-            Verifies user account, in case of wrong otp will be risen exception.
-            if wrong attempts gets up to max_attempts count account will be deleted.
+        Verifies user account, in case of wrong otp will be risen exception.
+        if wrong attempts gets up to max_attempts count account will be deleted.
         """
 
         user = await cls.get_user(session=session, email=data.email)
@@ -73,8 +87,15 @@ class UserRepository:
 
     @classmethod
     async def update_data(cls, user_id: int, session: AsyncSession, data: dict):
-        stmt = update(cls.model).where(cls.model.id == user_id).values(**data).returning(cls.model)
-        await session.scalars(stmt)
+        stmt = (
+            update(cls.model)
+            .filter_by(id=user_id)
+            .values(**data)
+            .returning(cls.model)
+            .options(selectinload(cls.model.features))
+        )
+        user = await session.scalars(stmt)
+        return user.unique().one()
 
     @classmethod
     async def request_otp(cls, session: AsyncSession, user: User):
@@ -84,4 +105,11 @@ class UserRepository:
             await session.delete(user)
             await session.commit()
             raise AccountDeleted
+        await session.commit()
+
+    @classmethod
+    async def update_profile_photo(
+        cls, session: AsyncSession, user: User, file_path: str | None = None
+    ):
+        user.photo = file_path
         await session.commit()

@@ -1,13 +1,14 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status, UploadFile
 from fastapi.security import HTTPAuthorizationCredentials
 from fastapi.security.oauth2 import OAuth2PasswordBearer
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_session
+from src.core.configs import SUPPORTED_IMAGE_TYPES
 from src.schemas.base import BaseMessageResponse
 from src.utils.auth_helpers import validate_authenticated_user_token, auth_scheme
-from src.schemas.user import UserResponseSchema, UserCreateSchema
+from src.schemas.user import UserResponseSchema, UserCreateSchema, UserUpdateSchema
 from src.schemas.auth import (
     LoginSchema,
     AccountVerificationScheme,
@@ -18,6 +19,8 @@ from src.schemas.auth import (
     RefreshTokenScheme,
 )
 from src.services import user_service
+from src.messages import PHOTO_UPDATED
+from src.utils.base_helpers import validate_file, check_content_type
 
 user_router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -31,7 +34,9 @@ auth_backend = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 """
 
 
-@user_router.post("/register", response_model=BaseMessageResponse)
+@user_router.post(
+    "/register", response_model=BaseMessageResponse, status_code=status.HTTP_201_CREATED
+)
 async def register(
     payload: UserCreateSchema, session: AsyncSession = Depends(get_session)
 ):
@@ -55,10 +60,36 @@ async def login(payload: LoginSchema, session: AsyncSession = Depends(get_sessio
 @user_router.get("/profile", response_model=UserResponseSchema)
 async def profile(
     session: AsyncSession = Depends(get_session),
-    user_id: OAuth2PasswordBearer = Depends(validate_authenticated_user_token),
+    user_id: int = Depends(validate_authenticated_user_token),
 ):
     user = await user_service.get_user(id=user_id, session=session)
     return UserResponseSchema.model_validate(user)
+
+
+@user_router.patch("/profile", response_model=UserResponseSchema)
+async def update_profile(
+    payload: UserUpdateSchema,
+    session: AsyncSession = Depends(get_session),
+    user_id: int = Depends(validate_authenticated_user_token),
+):
+    user = await user_service.patch_user(
+        session=session, payload=payload, user_id=user_id
+    )
+    print(user.__dict__)
+
+    return UserResponseSchema.model_validate(user)
+
+
+@user_router.patch("/profile-photo", response_model=BaseMessageResponse)
+@check_content_type(SUPPORTED_IMAGE_TYPES)
+async def profile_photo(
+    file: UploadFile = Depends(validate_file),
+    session: AsyncSession = Depends(get_session),
+    user_id: int = Depends(validate_authenticated_user_token),
+):
+    await user_service.update_profile_photo(session=session, user_id=user_id, file=file)
+
+    return BaseMessageResponse(message=PHOTO_UPDATED)
 
 
 @user_router.post("/resend-otp", response_model=BaseMessageResponse)

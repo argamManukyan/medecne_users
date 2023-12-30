@@ -23,3 +23,7 @@ PASSWORD_RESET_MESSAGE = (
 PASSWORDS_DID_NOT_MATCH = "The passwords did not match."
 PERMISSION_DENIED = "You dont have a permission to perform this action."
 TOKEN_IS_EXPIRED = "Token is expired."
+FILE_SIZE = "File size is too large, for this action supports up to {filesize} mb"
+INVALID_CONTENT_TYPE = (
+    "Invalid content type. For this case we support only `{content_types}` type(s)"
+)
