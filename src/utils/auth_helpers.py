@@ -13,7 +13,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core import constants
 from src.core.configs import settings
-from src.core.constants import TokenTypes, TOKEN_PARTITIONS_NUMBER, OTP_GENERATION_DIVISION
+from src.core.constants import (
+    TokenTypes,
+    TOKEN_PARTITIONS_NUMBER,
+    OTP_GENERATION_DIVISION,
+)
 from src.core.database import get_session
 from src.exceptions.auth_exceptions import InvalidData, UnAuthorized, TokenExpired
 from src.schemas.auth import TokenResponseScheme
@@ -32,7 +36,7 @@ def encode_jwt(
 ):
     """Returns encoded JWT token"""
 
-    payload["exp"] = datetime.datetime.now() + expiration_delta
+    payload["exp"] = int(time.time() + expiration_delta.total_seconds())
     payload["iat"] = time.time()
 
     return jwt.encode(payload, key, algorithm)
@@ -46,7 +50,6 @@ def decode_jwt(
     """Returns decoded JWT token"""
 
     decoded_data = jwt.decode(token, key, [algorithm])
-
     if decoded_data["exp"] < datetime.datetime.now().timestamp():
         raise TokenExpired
 
@@ -95,6 +98,7 @@ async def check_token_validity(session: AsyncSession, **kwargs) -> Optional[Toke
 
     if not (response := result.one_or_none()):
         raise UnAuthorized
+
     return response
 
 
