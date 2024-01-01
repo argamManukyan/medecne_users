@@ -131,6 +131,8 @@ def generate_otp_code() -> str:
 
 
 def create_refresh_and_access_tokens(user_id: int) -> TokenResponseScheme:
+    """Returns a couple of access and refresh token"""
+
     access_token: str = encode_jwt(
         payload=token_data(user_id=user_id, token_type=constants.TokenTypes.ACCESS)
     )
