@@ -10,13 +10,14 @@ from src.core.constants import PASSWORD_CHECKER_PATTERN
 
 
 class UserRelatedFeaturesValueScheme(BaseModel):
+    id: int | None = None
     value: str
 
 
 class UserRelatedFeaturesScheme(BaseModel):
     id: int | None = None
     title: str
-    values: Optional[list[UserRelatedFeaturesValueScheme]] = Field(default_factory=list)
+    values: list[UserRelatedFeaturesValueScheme] = Field(default_factory=list)
 
 
 class UserBaseSchema(BaseModel):
@@ -39,7 +40,7 @@ class UserCreateSchema(UserBaseSchema):
 class UserUpdateSchema(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
-    features: UserRelatedFeaturesScheme | None = None
+    features: list[UserRelatedFeaturesScheme] = Field(default_factory=list)
 
 
 class UserResponseSchema(UserBaseSchema):
