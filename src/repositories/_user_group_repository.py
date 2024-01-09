@@ -1,17 +1,22 @@
+from __future__ import annotations
 import json
-from typing import Iterable
+from typing import TYPE_CHECKING
 
 from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.configs import BASE_DIR
 from sqlalchemy import select
 
 from src.core.database import get_session
 from src.models import UserGroup
+from src.repositories.initial import BaseRepository
+
+if TYPE_CHECKING:
+    from typing import Iterable
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
-class UserGroupRepository:
+class UserGroupRepository(BaseRepository):
     model = UserGroup
 
     @classmethod
@@ -23,7 +28,7 @@ class UserGroupRepository:
                 await cls.crate_bulk(session=session, obj_list=user_groups)
 
     @classmethod
-    async def check_groups(cls, session) -> bool:
+    async def check_groups(cls, session: AsyncSession) -> bool:
         """Returns boolean an expression if user groups are existing"""
         stmt = await session.scalars(select(cls.model))
 
