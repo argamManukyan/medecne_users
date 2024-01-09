@@ -27,3 +27,4 @@ FILE_SIZE = "File size is too large, for this action supports up to {filesize} m
 INVALID_CONTENT_TYPE = (
     "Invalid content type. For this case we support only `{content_types}` type(s)"
 )
+OBJECT_DOES_NOT_EXISTS = "Object does not exists"
