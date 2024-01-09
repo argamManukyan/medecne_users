@@ -1,14 +1,18 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.exceptions.auth_exceptions import UnAuthorized
 from src.models import Token
-from src.schemas.auth import RefreshTokenScheme, TokenResponseScheme
 from src.utils.auth_helpers import decode_user_id, create_refresh_and_access_tokens
 
 
-class TokenService:
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from src.schemas.auth import RefreshTokenScheme, TokenResponseScheme
 
+
+class TokenRepository:
     model = Token
 
     @classmethod
@@ -50,13 +54,17 @@ class TokenService:
         return token_data
 
     @classmethod
-    async def refresh_token(cls, session: AsyncSession, payload: RefreshTokenScheme, token_data: dict):
+    async def refresh_token(
+        cls, session: AsyncSession, payload: RefreshTokenScheme, token_data: dict
+    ):
         """Refreshes and returns a couple of refresh and access tokens"""
 
         await cls.check_token_validity(
             session=session, refresh_token=payload.refresh_token, expired=False
         )
-        token = await cls.check_token_validity(session=session, refresh_token=payload.refresh_token, expired=False)
+        token = await cls.check_token_validity(
+            session=session, refresh_token=payload.refresh_token, expired=False
+        )
         await cls.update_token(session=session, expired=True, token_id=token.id)
         user_id: int = decode_user_id(token_data["sub"])
         token_data = await cls.tokenize(session=session, user_id=user_id)
