@@ -1,13 +1,11 @@
-import os.path
-import time
+from __future__ import annotations
 
-from fastapi import UploadFile
-from sqlalchemy import select, update, inspect
+from typing import TYPE_CHECKING
+
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
-from src.core.configs import BASE_DIR, settings
 from src.exceptions.auth_exceptions import (
     UserDoesNotFound,
     EmailDuplication,
@@ -16,25 +14,51 @@ from src.exceptions.auth_exceptions import (
     AccountDeleted,
     InvalidOTP,
 )
-from src.models import User, UserRelatedFeatures, UserRelatedFeatureValue, UserGroup
+from src.models import User, UserRelatedFeatures
 from src.schemas.auth import AccountVerificationScheme
-from src.schemas.user import UserUpdateSchema
+from src.repositories.initial import BaseRepository
 from src.utils.auth_helpers import generate_otp_code
 
 
-class UserRepository:
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+
+class UserRepository(BaseRepository):
     model = User
+
+    # def relation_data_fn_provider(
+    #     relation_type: Literal[1, 2, 3]
+    # ) -> Callable[
+    #     [Any, Any, str, str, list | dict | PydanticBase, AsyncSession],
+    #     Coroutine[Any, Any, tuple[list, list]],
+    # ]:
+    #     """Selects and returns a handler"""
+    #
+    #     selector = {
+    #         # RelationshipDirection.MANYTOONE.value: many_to_one_handler,
+    #         RelationshipDirection.ONETOMANY.value: 1,
+    #         # RelationshipDirection.MANYTOMANY.value: many_to_many_handler,
+    #     }
+    #
+    #     return selector[relation_type]
 
     @classmethod
     async def get_user(cls, session: AsyncSession, **kwargs) -> User:
         """Returns a user instance"""
-        stmt = select(cls.model).options(
-            joinedload(cls.model.group),
-            selectinload(cls.model.features),
+        stmt = (
+            select(cls.model)
+            .filter_by(**kwargs)
+            .options(
+                joinedload(cls.model.group),
+                selectinload(cls.model.features).selectinload(
+                    UserRelatedFeatures.values,
+                ),
+            )
         )
 
         result = await session.scalars(stmt)
-        user_object = result.one_or_none()
+        user_object = result.unique().one_or_none()
         if not user_object:
             raise UserDoesNotFound
 
@@ -87,18 +111,18 @@ class UserRepository:
 
     @classmethod
     async def update_data(cls, user_id: int, session: AsyncSession, data: dict):
-        stmt = (
-            update(cls.model)
-            .filter_by(id=user_id)
-            .values(**data)
-            .returning(cls.model)
-            .options(selectinload(cls.model.features))
+        filter_data = dict(id=user_id)
+        await cls.update_existing_data(
+            session=session, base_data=data, model=cls.model, filter_kwargs=filter_data
         )
-        user = await session.scalars(stmt)
-        return user.unique().one()
+
+        user = await cls.get_user(session=session, id=user_id)
+        await session.refresh(user)
+        return user
 
     @classmethod
     async def request_otp(cls, session: AsyncSession, user: User):
+        """Makes a new OTP code and the same time will be decreased user.attempts_count"""
         user.otp_code = generate_otp_code()
         user.attempts_count -= 1
         if user.attempts_count == 0:
@@ -111,5 +135,6 @@ class UserRepository:
     async def update_profile_photo(
         cls, session: AsyncSession, user: User, file_path: str | None = None
     ):
+        """Creates a new reference to user photo"""
         user.photo = file_path
         await session.commit()
