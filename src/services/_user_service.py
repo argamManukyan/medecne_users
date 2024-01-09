@@ -4,6 +4,7 @@ import datetime
 from fastapi import UploadFile
 from sqlalchemy import inspect
 from sqlalchemy.ext.asyncio.session import AsyncSession
+
 from src import messages
 from src.core.configs import settings
 from src.core.constants import TokenTypes
@@ -23,7 +24,7 @@ from src.schemas.auth import (
     SetNewPasswordScheme,
     RefreshTokenScheme,
 )
-from src.schemas.base import BaseMessageResponse
+from src.schemas.base import BaseMessageResponse, GenericSchema
 from src.schemas.user import UserCreateSchema, UserUpdateSchema
 from src.utils.auth_helpers import (
     hash_password,
@@ -33,8 +34,6 @@ from src.utils.auth_helpers import (
 )
 from src.repositories import user_repository, token_repository, user_group_repository
 from src.utils.base_helpers import (
-    get_related_and_base_columns,
-    preparing_base_fields,
     get_file_path,
     generate_filename,
 )
@@ -215,11 +214,24 @@ class UserServie:
     ):
         inspect_table = inspect(cls.model)
 
-        related_columns, base_columns = get_related_and_base_columns(inspect_table)
+        related_columns, base_columns = user_repository.get_related_and_base_columns(
+            inspect_table
+        )
 
-        base_data_dict = preparing_base_fields(base_columns, payload)
+        base_data_dict = user_repository.preparing_base_fields(base_columns, payload)
 
-        # TODO: saving related column data
+        for rel_column in related_columns:
+            if rel_column.key in payload.model_dump(exclude_unset=True):
+                # TODO: user_repository.combine_relations()
+                await user_repository.find_relations(
+                    rel_column.mapper.entity,
+                    GenericSchema(
+                        data=payload.model_dump(exclude_unset=True)[rel_column.key]
+                    ),
+                    session=session,
+                    parent_id=user_id,
+                    parent_backref=rel_column.back_populates,
+                )
 
         return await user_repository.update_data(
             session=session, user_id=user_id, data=base_data_dict
