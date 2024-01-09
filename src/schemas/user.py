@@ -10,11 +10,13 @@ from src.core.constants import PASSWORD_CHECKER_PATTERN
 
 
 class UserRelatedFeaturesValueScheme(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     id: int | None = None
     value: str
 
 
 class UserRelatedFeaturesScheme(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     id: int | None = None
     title: str
     values: list[UserRelatedFeaturesValueScheme] = Field(default_factory=list)
