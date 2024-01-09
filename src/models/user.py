@@ -3,7 +3,14 @@ from typing import Annotated, Optional
 
 from annotated_types import MinLen
 from pydantic import EmailStr
-from sqlalchemy import String, DateTime, ForeignKey, Integer, JSON, UniqueConstraint
+from sqlalchemy import (
+    String,
+    DateTime,
+    ForeignKey,
+    Integer,
+    JSON,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, validates, relationship
 
@@ -61,8 +68,9 @@ class User(BaseModel):
     group: Mapped["UserGroup"] = relationship(
         "UserGroup", back_populates="users", cascade="all, delete"
     )
-    features: Mapped[Optional[set["UserRelatedFeatures"]]] = relationship(
-        "UserRelatedFeatures", back_populates="user"
+    features: Mapped[Optional[list["UserRelatedFeatures"]]] = relationship(
+        "UserRelatedFeatures",
+        back_populates="user",
     )
     first_name: Mapped[Annotated[str, MinLen(3)]] = mapped_column(String(20))
     last_name: Mapped[Annotated[str, MinLen(3)]] = mapped_column(String(20))
