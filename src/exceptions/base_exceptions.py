@@ -1,6 +1,6 @@
 from fastapi import HTTPException, status
 
-from src.messages import FILE_SIZE, INVALID_CONTENT_TYPE
+from src.messages import FILE_SIZE, INVALID_CONTENT_TYPE, OBJECT_DOES_NOT_EXISTS
 
 
 class FileIsTooLarge(HTTPException):
@@ -15,3 +15,9 @@ class InvalidContentType(HTTPException):
         self.detail = INVALID_CONTENT_TYPE.format(
             content_types=", ".join(content_types)
         )
+
+
+class ObjectDoesNotExists(HTTPException):
+    def __init__(self):
+        self.status_code = status.HTTP_404_NOT_FOUND
+        self.detail = OBJECT_DOES_NOT_EXISTS
