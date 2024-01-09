@@ -1,11 +1,12 @@
+from __future__ import annotations
+
 import functools
 import os
 import time
 
-from fastapi import UploadFile, File
+from fastapi import File
+from fastapi import UploadFile
 
-from pydantic import BaseModel
-from sqlalchemy.orm import Relationship
 from slugify import slugify
 
 from src.core.configs import settings, MB_TO_BYTES
@@ -22,22 +23,6 @@ def validate_file(file: UploadFile = File(default=None)) -> UploadFile | None:
         raise FileIsTooLarge(size=size)
 
     return file
-
-
-def preparing_base_fields(columns: list, payload: BaseModel) -> dict:
-    """Returns a list of base field names"""
-    dump_obj = payload.model_dump()
-
-    return {key: value for key, value in dump_obj.items() if key in columns}
-
-
-def get_related_and_base_columns(inspect_table) -> tuple:
-    """Returns foreign keys and local columns"""
-    related_columns: list[Relationship] = [
-        _column.key for _column in inspect_table.relationships
-    ]
-    basic_columns = inspect_table.columns
-    return related_columns, basic_columns
 
 
 def get_file_path(
@@ -74,6 +59,8 @@ def generate_filename(file_prefix: str) -> str:
 
 
 def check_content_type(content_types: list):
+    """Content-Type checker decorator"""
+
     def inner(func):
         @functools.wraps(func)
         async def wrapped(*args, **kwargs):
