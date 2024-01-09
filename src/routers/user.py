@@ -75,8 +75,6 @@ async def update_profile(
     user = await user_service.patch_user(
         session=session, payload=payload, user_id=user_id
     )
-    print(user.__dict__)
-
     return UserResponseSchema.model_validate(user)
 
 
