@@ -53,7 +53,10 @@ class UserServie:
     async def create_user(
         cls, data: UserCreateSchema, session: AsyncSession
     ) -> BaseMessageResponse:
-        """Returns new user object"""
+        """
+        Will be created a new user and returned a success message.
+        if group does not exist in the data so group_id sets 2
+        """
         await asyncio.sleep(1)  # For avoiding repetition of otp_code's
 
         user_data = data.model_dump().copy()
@@ -61,7 +64,7 @@ class UserServie:
         user_data["password"] = hash_password(password)
         user_data["otp_code"] = generate_otp_code()
         user_data["attempts_count"] = 3
-        await user_group_repository.initial_user_groups(session=session)
+        # await user_group_repository.initial_user_groups(session=session)
         await user_repository.create_user(session=session, user_data=user_data)
         return BaseMessageResponse(message=messages.USER_CREATED_SUCCESSFULLY)
 

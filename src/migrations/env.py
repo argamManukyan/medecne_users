@@ -1,20 +1,18 @@
 import asyncio
 import itertools
-from typing import TypeVar
+import json
 from logging.config import fileConfig
-from fastapi import Depends
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool, select
-from src.core.configs import settings
+from src.core.configs import settings, BASE_DIR
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncEngine
 
-from src.core.constants import MAIN_OPERATIONS
-from src.core.database import BaseModel, get_session
+from src.core.constants import MAIN_OPERATIONS, JsonType, ALLOW_ACTION, DENY_ACTION
+from src.core.database import BaseModel, async_session
 from alembic import context
 from src.models import *
-
-JsonType = TypeVar(name="JsonType")
+from src.repositories import user_group_repository
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -70,36 +68,66 @@ def do_run_migrations(connection: Connection) -> None:
         context.run_migrations()
 
 
-def _policies_generator(tables: list, policies: JsonType) -> JsonType:
+def _policies_generator(tables: list, policies: JsonType, group_id: int) -> JsonType:
     """Builds and returns json of permission policies"""
     key_list = []
 
-    action_combinations = itertools.product(
-        tables, MAIN_OPERATIONS
-    )
+    action_combinations = itertools.product(tables, MAIN_OPERATIONS)
 
     for action in action_combinations:
         key_list.append("_".join(action))
 
+    polices = json.loads(policies)
     for action_key in key_list:
-        if not policies.get(action_key):
-            policies[action_key] = "DENY"
+        if not polices.get(action_key):
+            polices[action_key] = ALLOW_ACTION if group_id == 4 else DENY_ACTION
 
-    return policies
+    return json.dumps(polices)
 
 
-async def set_permission_policies(session: AsyncSession = Depends(get_session)):
-    tables = list(map(lambda x: x != "permission", list(target_metadata.tables)))
+async def set_user_groups() -> None:
+    fixture_source = BASE_DIR / "src" / "fixtures" / "usergroup.json"
+    with open(fixture_source) as groups_source:
+        user_groups = json.load(groups_source)
+        async with async_session() as session:
+            for group in user_groups:
+                if not await user_group_repository.check_group(
+                    session=session, filter_kwargs={"id": group["id"]}
+                ):
+                    await user_group_repository.create(session=session, data=group)
+                await create_permissions(user_group_id=group["id"])
+
+
+async def create_permissions(user_group_id: int) -> None:
+    """After migration will be created permissions depended on the user_group"""
+
+    async with async_session() as session:
+        stmt = select(Permission).filter_by(user_group_id=user_group_id)
+        res = await session.scalars(stmt)
+        result = res.one_or_none()
+        if not result:
+            obj = Permission(user_group_id=user_group_id, policies=json.dumps({}))
+            session.add(obj)
+            await session.commit()
+
+
+async def set_permission_policies():
+    tables = list(
+        filter(lambda x: x != Permission.__tablename__, list(target_metadata.tables))
+    )
     stmt = select(Permission).join(UserGroup)
-    scalars = await session.scalars(stmt)
+    async with async_session() as session:
+        scalars = await session.scalars(stmt)
 
-    results = scalars.all()
+        results = scalars.all()
 
-    for result in results:
+        for result in results:
+            result.policies = _policies_generator(
+                tables, result.policies, result.user_group_id
+            )
 
-        result.policies = _policies_generator(tables, result.policies)
-
-        await session.commit()
+            await session.commit()
+            await session.refresh(result)
 
 
 async def run_migrations_online() -> None:
@@ -112,13 +140,13 @@ async def run_migrations_online() -> None:
     connectable = context.config.attributes.get("connection", None)
     if connectable is None:
         connectable = AsyncEngine(
-                engine_from_config(
-                    config.get_section(config.config_ini_section),
-                    prefix="sqlalchemy.",
-                    poolclass=pool.NullPool,
-                    future=True,
-                )
+            engine_from_config(
+                config.get_section(config.config_ini_section),
+                prefix="sqlalchemy.",
+                poolclass=pool.NullPool,
+                future=True,
             )
+        )
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
@@ -126,8 +154,15 @@ async def run_migrations_online() -> None:
     await connectable.dispose()
 
 
+async def main() -> None:
+    await asyncio.gather(
+        run_migrations_online(),
+        set_user_groups(),
+    )
+    await asyncio.ensure_future(set_permission_policies())
+
+
 if context.is_offline_mode():
     run_migrations_offline()
 else:
-    asyncio.run(run_migrations_online())
-    # asyncio.gather(*[run_migrations_online(), set_permission_policies()])
+    asyncio.run(main())

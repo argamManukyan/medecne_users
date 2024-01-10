@@ -1,11 +1,14 @@
 from enum import Enum
 from typing import NewType, Any
 
-DbBaseModel = NewType("T", Any)
 
 # Project constants
 
+DbBaseModel = NewType("T", Any)
+JsonType = NewType("T", str)
 MAIN_OPERATIONS = ["create", "read", "update", "delete"]
+ALLOW_ACTION = "ALLOW"
+DENY_ACTION = "DENY"
 
 # Auth constants
 
