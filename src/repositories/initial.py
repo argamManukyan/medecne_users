@@ -142,7 +142,7 @@ class BaseRepository:
         *,
         session: AsyncSession,
         callable_func: Callable,
-        inner_relations: Iterable,
+        inner_relations: Iterable[RelationshipProperty],
         payload: dict,
         parent_runtime: DbBaseModel,
     ):
@@ -173,6 +173,8 @@ class BaseRepository:
                     parent_id=parent_runtime.id,
                     parent_backref=related_column.back_populates,
                 )
+            # elif related_column.direction.MANYTOONE:
+            # elif related_column.direction.MANYTOONE:
 
     @classmethod
     async def routine_creation_or_update_instances(
