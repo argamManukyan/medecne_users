@@ -10,5 +10,9 @@
   {
     "id": 3,
     "title": "Market"
+  },
+  {
+    "id": 4,
+    "title": "Admin"
   }
 ]
