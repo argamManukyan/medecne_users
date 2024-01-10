@@ -5,7 +5,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 from fastapi.security.oauth2 import OAuth2PasswordBearer
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_session
-from src.core.configs import SUPPORTED_IMAGE_TYPES
+from src.core.configs import SUPPORTED_IMAGE_TYPES, settings
 from src.schemas.base import BaseMessageResponse
 from src.utils.auth_helpers import validate_authenticated_user_token, auth_scheme
 from src.schemas.user import UserResponseSchema, UserCreateSchema, UserUpdateSchema
@@ -22,9 +22,9 @@ from src.services import user_service
 from src.messages import PHOTO_UPDATED
 from src.utils.base_helpers import validate_file, check_content_type
 
-user_router = APIRouter(prefix="/auth", tags=["Auth"])
+user_router = APIRouter(prefix=f"{settings.api_version}/auth", tags=["Auth"])
 
-auth_backend = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+auth_backend = OAuth2PasswordBearer(tokenUrl=f"{settings.api_version}/auth/login")
 
 """
 # TODO: /add-payment
