@@ -17,7 +17,6 @@ class UserGroupRepository(BaseRepository):
     @classmethod
     async def check_group(cls, session: AsyncSession, filter_kwargs: dict) -> bool:
         """Returns a boolean expression if user group(s) are existing"""
-        print(session)
         stmt = await session.scalars(select(cls.model).filter_by(**filter_kwargs))
 
         return bool(stmt.all())
