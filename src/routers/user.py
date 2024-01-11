@@ -26,13 +26,6 @@ user_router = APIRouter(prefix=f"{settings.api_version}/auth", tags=["Auth"])
 
 auth_backend = OAuth2PasswordBearer(tokenUrl=f"{settings.api_version}/auth/login")
 
-"""
-# TODO: /add-payment
-# TODO: /refresh # Done
-# TODO: /logout # Done
-# TODO: Add `Token` table  # Done
-"""
-
 
 @user_router.post(
     "/register", response_model=BaseMessageResponse, status_code=status.HTTP_201_CREATED

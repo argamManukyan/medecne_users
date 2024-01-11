@@ -10,6 +10,6 @@ openssl genrsa -out jwt-private.pem 2048
 openssl rsa -in jwt-private.pem -outform PEM -pubout -out jwt-public.pem 
 ```
 
-*Make a folder in the `src` folder, call it `certs` and move generated certificates into that folder .*
+#### Make a folder in the `src` folder, call it `certs` and move generated certificates into that folder .
 
 

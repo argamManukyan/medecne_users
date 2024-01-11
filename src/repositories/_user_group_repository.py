@@ -1,18 +1,13 @@
 from __future__ import annotations
-import json
+
 from typing import TYPE_CHECKING
 
-from fastapi import Depends
-
-from src.core.configs import BASE_DIR
 from sqlalchemy import select
 
-from src.core.database import get_session
 from src.models import UserGroup
 from src.repositories.initial import BaseRepository
 
 if TYPE_CHECKING:
-    from typing import Iterable
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
