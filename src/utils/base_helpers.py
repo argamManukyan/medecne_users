@@ -53,6 +53,7 @@ def get_file_path(
 
 
 def generate_filename(file_prefix: str) -> str:
+    """Generates and returns filename"""
     return slugify(f"{file_prefix}_{int(time.time())}")
 
 

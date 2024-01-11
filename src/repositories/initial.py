@@ -45,6 +45,8 @@ class BaseRepository:
     async def get_object_existence(
         cls, session: AsyncSession, model: DbBaseModel, **filter_kwargs
     ):
+        """Checking object existing depended on filter kwargs"""
+
         stmt = select(model).filter_by(**filter_kwargs)
 
         result = await session.scalars(stmt)
@@ -106,6 +108,8 @@ class BaseRepository:
         model: DbBaseModel,
         filter_kwargs: dict,
     ):
+        """Update existing data public method , this calls a protected method, jost encapsulates method for update"""
+
         return cls._update_existing_data(session, base_data, model, **filter_kwargs)
 
     @classmethod
@@ -188,6 +192,8 @@ class BaseRepository:
         parent_id: int | None = None,
         parent_backref: str | None = None,
     ):
+        """Will be created or updated `model` instance depending on their existence"""
+
         prepared_base_data = cls._preparing_base_fields(
             base_columns, GenericSchema(data=payload)
         )

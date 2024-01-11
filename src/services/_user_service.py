@@ -215,6 +215,7 @@ class UserServie:
         user_id: int,
         payload: UserUpdateSchema | None = None,
     ):
+        """Updates a user object. Recursively update is going as well, if there is related data."""
         inspect_table = inspect(cls.model)
 
         related_columns, base_columns = user_repository.get_related_and_base_columns(
@@ -244,6 +245,8 @@ class UserServie:
     async def update_profile_photo(
         cls, session: AsyncSession, user_id: int, file: UploadFile | None = None
     ):
+        """Sets/Removes user photo"""
+
         user = await cls.get_user(session=session, id=user_id)
 
         filename = generate_filename(file_prefix=user.full_name)
