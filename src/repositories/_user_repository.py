@@ -110,7 +110,7 @@ class UserRepository(BaseRepository):
         await session.commit()
 
     @classmethod
-    async def update_data(cls, user_id: int, session: AsyncSession, data: dict):
+    async def update_data(cls, user_id: int, session: AsyncSession, data: dict) -> User:
         filter_data = dict(id=user_id)
         await cls.update_existing_data(
             session=session, base_data=data, model=cls.model, filter_kwargs=filter_data
@@ -134,7 +134,9 @@ class UserRepository(BaseRepository):
     @classmethod
     async def update_profile_photo(
         cls, session: AsyncSession, user: User, file_path: str | None = None
-    ):
+    ) -> str:
         """Creates a new reference to user photo"""
         user.photo = file_path
         await session.commit()
+        await session.refresh(user)
+        return user.photo

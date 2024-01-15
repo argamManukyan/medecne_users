@@ -83,7 +83,7 @@ class UserServie:
     ) -> TokenResponseScheme:
         """Returns a couple of access and refresh tokens"""
 
-        user = await user_repository.get_user(session=session, email=login_data.email)
+        user = await cls.get_user(session=session, email=login_data.email)
 
         if not user.is_active:
             raise UnActivated
@@ -214,7 +214,7 @@ class UserServie:
         session: AsyncSession,
         user_id: int,
         payload: UserUpdateSchema | None = None,
-    ):
+    ) -> User:
         """Updates a user object. Recursively update is going as well, if there is related data."""
         inspect_table = inspect(cls.model)
 
@@ -244,7 +244,7 @@ class UserServie:
     @classmethod
     async def update_profile_photo(
         cls, session: AsyncSession, user_id: int, file: UploadFile | None = None
-    ):
+    ) -> str:
         """Sets/Removes user photo"""
 
         user = await cls.get_user(session=session, id=user_id)
@@ -257,6 +257,6 @@ class UserServie:
             old_path=user.photo,
         )
 
-        await user_repository.update_profile_photo(
+        return await user_repository.update_profile_photo(
             session=session, user=user, file_path=file_path
         )
