@@ -5,26 +5,17 @@ import asyncio
 
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.pool import NullPool
+from pytest_factoryboy import register
+from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.database import get_session, BaseModel
-from src.core.configs import settings
 from main import app
 
-engine_test = create_async_engine(settings.db.db_test_url, poolclass=NullPool)
-async_session_maker = async_sessionmaker(
-    engine_test,
-    class_=AsyncSession,
-    expire_on_commit=False,
-    autoflush=False,
-)
-
-BaseModel.metadata.bind = engine_test
+from tests.init_db import async_session_maker, engine_test
+from tests.factories import UserGroupFactory, UserFactory
 
 
-pytest_plugins = [
-    "fixtures.fixture_user",
-]
+register(UserGroupFactory)
+register(UserFactory)
 
 
 async def override_get_async_session() -> AsyncGenerator[AsyncSession, None]:

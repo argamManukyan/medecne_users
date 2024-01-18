@@ -20,7 +20,7 @@ from src.core.database import BaseModel
 class UserGroup(BaseModel):
     __tablename__ = "usergroup"
 
-    title: Mapped[str] = mapped_column(String(40))
+    title: Mapped[str] = mapped_column(String(40), unique=True)
     users: Mapped[list["User"]] = relationship(
         back_populates="group", cascade="all, delete-orphan"
     )

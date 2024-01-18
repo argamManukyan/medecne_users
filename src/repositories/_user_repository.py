@@ -27,22 +27,6 @@ if TYPE_CHECKING:
 class UserRepository(BaseRepository):
     model = User
 
-    # def relation_data_fn_provider(
-    #     relation_type: Literal[1, 2, 3]
-    # ) -> Callable[
-    #     [Any, Any, str, str, list | dict | PydanticBase, AsyncSession],
-    #     Coroutine[Any, Any, tuple[list, list]],
-    # ]:
-    #     """Selects and returns a handler"""
-    #
-    #     selector = {
-    #         # RelationshipDirection.MANYTOONE.value: many_to_one_handler,
-    #         RelationshipDirection.ONETOMANY.value: 1,
-    #         # RelationshipDirection.MANYTOMANY.value: many_to_many_handler,
-    #     }
-    #
-    #     return selector[relation_type]
-
     @classmethod
     async def get_user(cls, session: AsyncSession, **kwargs) -> User:
         """Returns a user instance"""
