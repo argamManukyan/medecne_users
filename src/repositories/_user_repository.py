@@ -79,15 +79,17 @@ class UserRepository(BaseRepository):
         if user.is_active:
             raise AccountAlreadyVerified
 
+        if user.attempts_count == 0:
+            await session.delete(user)
+            await session.commit()
+            raise AccountDeleted
+
         if user.otp_code != data.otp_code:
             user.attempts_count -= 1
-            if user.attempts_count == 0:
-                await session.delete(user)
-                await session.commit()
-                raise AccountDeleted
             await session.commit()
             raise InvalidOTP(attempts_num=user.attempts_count)
 
+        print("USER ATTEMPTS COUNT")
         user.attempts_count = 3
         user.otp_code = None
         user.is_active = True

@@ -11,11 +11,10 @@ from src.core.database import get_session, BaseModel
 from main import app
 
 from tests.init_db import async_session_maker, engine_test
-from tests.factories import UserGroupFactory, UserFactory
+from tests.factories import UserGroupFactory
 
 
 register(UserGroupFactory)
-register(UserFactory)
 
 
 async def override_get_async_session() -> AsyncGenerator[AsyncSession, None]:
