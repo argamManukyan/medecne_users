@@ -65,9 +65,7 @@ class User(BaseModel):
     __tablename__ = "user"
 
     group_id: Mapped[int] = mapped_column(Integer, ForeignKey("usergroup.id"))
-    group: Mapped["UserGroup"] = relationship(
-        "UserGroup", back_populates="users", cascade="all, delete"
-    )
+    group: Mapped["UserGroup"] = relationship("UserGroup", back_populates="users")
     features: Mapped[Optional[list["UserRelatedFeatures"]]] = relationship(
         "UserRelatedFeatures",
         back_populates="user",
