@@ -78,9 +78,10 @@ async def profile_photo(
     session: AsyncSession = Depends(get_session),
     user_id: int = Depends(validate_authenticated_user_token),
 ):
-    await user_service.update_profile_photo(session=session, user_id=user_id, file=file)
-
-    return BaseMessageResponse(message=PHOTO_UPDATED)
+    photo_path = await user_service.update_profile_photo(
+        session=session, user_id=user_id, file=file
+    )
+    return BaseMessageResponse(message=photo_path)
 
 
 @user_router.post("/resend-otp", response_model=BaseMessageResponse)

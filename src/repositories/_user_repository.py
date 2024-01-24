@@ -27,22 +27,6 @@ if TYPE_CHECKING:
 class UserRepository(BaseRepository):
     model = User
 
-    # def relation_data_fn_provider(
-    #     relation_type: Literal[1, 2, 3]
-    # ) -> Callable[
-    #     [Any, Any, str, str, list | dict | PydanticBase, AsyncSession],
-    #     Coroutine[Any, Any, tuple[list, list]],
-    # ]:
-    #     """Selects and returns a handler"""
-    #
-    #     selector = {
-    #         # RelationshipDirection.MANYTOONE.value: many_to_one_handler,
-    #         RelationshipDirection.ONETOMANY.value: 1,
-    #         # RelationshipDirection.MANYTOMANY.value: many_to_many_handler,
-    #     }
-    #
-    #     return selector[relation_type]
-
     @classmethod
     async def get_user(cls, session: AsyncSession, **kwargs) -> User:
         """Returns a user instance"""
@@ -95,22 +79,24 @@ class UserRepository(BaseRepository):
         if user.is_active:
             raise AccountAlreadyVerified
 
+        if user.attempts_count == 0:
+            await session.delete(user)
+            await session.commit()
+            raise AccountDeleted
+
         if user.otp_code != data.otp_code:
             user.attempts_count -= 1
-            if user.attempts_count == 0:
-                await session.delete(user)
-                await session.commit()
-                raise AccountDeleted
             await session.commit()
             raise InvalidOTP(attempts_num=user.attempts_count)
 
+        print("USER ATTEMPTS COUNT")
         user.attempts_count = 3
         user.otp_code = None
         user.is_active = True
         await session.commit()
 
     @classmethod
-    async def update_data(cls, user_id: int, session: AsyncSession, data: dict):
+    async def update_data(cls, user_id: int, session: AsyncSession, data: dict) -> User:
         filter_data = dict(id=user_id)
         await cls.update_existing_data(
             session=session, base_data=data, model=cls.model, filter_kwargs=filter_data
@@ -134,7 +120,9 @@ class UserRepository(BaseRepository):
     @classmethod
     async def update_profile_photo(
         cls, session: AsyncSession, user: User, file_path: str | None = None
-    ):
+    ) -> str:
         """Creates a new reference to user photo"""
         user.photo = file_path
         await session.commit()
+        await session.refresh(user)
+        return user.photo

@@ -4,10 +4,12 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 
+from src.exceptions.base_exceptions import ObjectDoesNotExists
 from src.models import UserGroup
 from src.repositories.initial import BaseRepository
 
 if TYPE_CHECKING:
+    from typing import Sequence, Any
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -21,17 +23,29 @@ class UserGroupRepository(BaseRepository):
 
         return bool(stmt.all())
 
-    # @classmethod
-    # async def crate_bulk(cls, session: AsyncSession, obj_list: Iterable):
-    #     """Creates a bunch of instances"""
-    #
-    #     group_list = [cls.model(**data) for data in obj_list]
-    #     session.add_all(group_list)
-    #     await session.commit()
-
     @classmethod
     async def create(cls, session: AsyncSession, data: dict) -> model:
+        """Creates and returns an instance of UserGroup"""
         instance = cls.model(**data)
         session.add(instance)
         await session.commit()
         return instance
+
+    @classmethod
+    async def get_all_groups(cls, session: AsyncSession) -> Sequence[model]:
+        """Returns a sequence of UserGroup's"""
+        stmt = await session.scalars(select(cls.model))
+        return stmt.all()
+
+    @classmethod
+    async def get_group(
+        cls, session: AsyncSession, **filter_kwargs: dict[str, Any]
+    ) -> model:
+        """Returns an object of UserGroup"""
+        stmt = select(cls.model).filter_by(**filter_kwargs)
+        res = await session.scalars(stmt)
+        obj = res.one_or_none()
+
+        if not obj:
+            raise ObjectDoesNotExists
+        return obj

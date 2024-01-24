@@ -28,7 +28,7 @@ class TokenRepository:
         return response
 
     @classmethod
-    async def update_token(cls, session: AsyncSession, token_id: int, **kwargs):
+    async def update_token(cls, session: AsyncSession, token_id: int, **kwargs) -> None:
         """Updates the token state"""
 
         stmt = (
@@ -41,17 +41,18 @@ class TokenRepository:
         await session.scalars(stmt)
 
     @classmethod
-    async def tokenize(cls, session: AsyncSession, user_id: int) -> TokenResponseScheme:
+    async def tokenize(
+        cls, session: AsyncSession, token_schema: TokenResponseScheme
+    ) -> TokenResponseScheme:
         """Creates refresh and access tokens for the particular user"""
 
-        token_data = create_refresh_and_access_tokens(user_id=user_id)
-
         stmt = Token(
-            refresh_token=token_data.refresh_token, access_token=token_data.access_token
+            refresh_token=token_schema.refresh_token,
+            access_token=token_schema.access_token,
         )
         session.add(stmt)
         await session.commit()
-        return token_data
+        return token_schema
 
     @classmethod
     async def refresh_token(
@@ -59,14 +60,12 @@ class TokenRepository:
     ):
         """Refreshes and returns a couple of refresh and access tokens"""
 
-        await cls.check_token_validity(
-            session=session, refresh_token=payload.refresh_token, expired=False
-        )
         token = await cls.check_token_validity(
             session=session, refresh_token=payload.refresh_token, expired=False
         )
         await cls.update_token(session=session, expired=True, token_id=token.id)
         user_id: int = decode_user_id(token_data["sub"])
+
         token_data = await cls.tokenize(session=session, user_id=user_id)
         await session.commit()
         return token_data

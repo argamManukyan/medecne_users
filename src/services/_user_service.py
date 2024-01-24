@@ -32,7 +32,8 @@ from src.utils.auth_helpers import (
     generate_otp_code,
     decode_jwt,
 )
-from src.repositories import user_repository, token_repository, user_group_repository
+from src.repositories import user_repository
+from src.services._token_service import TokenService as token_service
 from src.utils.base_helpers import (
     get_file_path,
     generate_filename,
@@ -64,7 +65,6 @@ class UserServie:
         user_data["password"] = hash_password(password)
         user_data["otp_code"] = generate_otp_code()
         user_data["attempts_count"] = 3
-        # await user_group_repository.initial_user_groups(session=session)
         await user_repository.create_user(session=session, user_data=user_data)
         return BaseMessageResponse(message=messages.USER_CREATED_SUCCESSFULLY)
 
@@ -83,7 +83,7 @@ class UserServie:
     ) -> TokenResponseScheme:
         """Returns a couple of access and refresh tokens"""
 
-        user = await user_repository.get_user(session=session, email=login_data.email)
+        user = await cls.get_user(session=session, email=login_data.email)
 
         if not user.is_active:
             raise UnActivated
@@ -96,7 +96,7 @@ class UserServie:
             data=dict(last_login=datetime.datetime.now()),
             user_id=user.id,
         )
-        token_data = await token_repository.tokenize(session=session, user_id=user.id)
+        token_data = await token_service.tokenize(session=session, user_id=user.id)
         return token_data
 
     @classmethod
@@ -109,7 +109,7 @@ class UserServie:
         if token_data["token_type"] != TokenTypes.REFRESH.value:
             raise UnAuthorized
 
-        return await token_repository.refresh_token(
+        return await token_service.refresh_token(
             session=session, token_data=token_data, payload=payload
         )
 
@@ -121,10 +121,10 @@ class UserServie:
     ) -> BaseMessageResponse:
         """Logs out of the user and marks tokens expired"""
 
-        token = await token_repository.check_token_validity(
+        token = await token_service.check_token_validity(
             session=session, access_token=token, expired=False
         )
-        await token_repository.update_token(
+        await token_service.update_token(
             session=session, expired=True, token_id=token.id
         )
 
@@ -214,7 +214,7 @@ class UserServie:
         session: AsyncSession,
         user_id: int,
         payload: UserUpdateSchema | None = None,
-    ):
+    ) -> User:
         """Updates a user object. Recursively update is going as well, if there is related data."""
         inspect_table = inspect(cls.model)
 
@@ -244,7 +244,7 @@ class UserServie:
     @classmethod
     async def update_profile_photo(
         cls, session: AsyncSession, user_id: int, file: UploadFile | None = None
-    ):
+    ) -> str:
         """Sets/Removes user photo"""
 
         user = await cls.get_user(session=session, id=user_id)
@@ -257,6 +257,6 @@ class UserServie:
             old_path=user.photo,
         )
 
-        await user_repository.update_profile_photo(
+        return await user_repository.update_profile_photo(
             session=session, user=user, file_path=file_path
         )
